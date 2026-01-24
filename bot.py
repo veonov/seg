@@ -203,7 +203,7 @@ async def show_settings(callback: CallbackQuery, state: FSMContext):
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🏙 Выбрать город", callback_data="choose_city")],
-            [InlineKeyboardButton(text="Пополнить баланс ", url="https://t.me/your_support_username")],
+            [InlineKeyboardButton(text="Пополнить баланс ", url="https://t.me/feeddrugbot")],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
            
         ])
@@ -340,7 +340,7 @@ async def execute_purchase(callback: CallbackQuery, state: FSMContext):
 
     balance = await get_balance(user_id)
     if balance < total:
-        await callback.answer("❌ Недостаточно средств", show_alert=True)
+        await callback.answer("❌ Недостаточно средств!\nПополните баланс у @feeddrugbot, show_alert=True)
         return
 
     user = await get_user(user_id)
@@ -358,7 +358,7 @@ async def execute_purchase(callback: CallbackQuery, state: FSMContext):
         f"✅ Покупка успешна!\n<b>ID заказа:</b> <code>{order_id}</code>\n"
         f"<b>Напишите поддержке с ID заказа</b>",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/your_support_username")]
+            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrugbot")]
         ])
     )
     await state.clear()
@@ -368,7 +368,7 @@ async def support(callback: CallbackQuery):
     await callback.message.edit_text(
         "🛠 Нажмите кнопку ниже, чтобы связаться с поддержкой:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/your_support_username")],
+            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrugbot")],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
         ])
     )
@@ -451,4 +451,5 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+
     asyncio.run(main())
