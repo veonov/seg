@@ -12,7 +12,7 @@ from aiogram.client.default import DefaultBotProperties
 import os
 
 # === CONFIG ===
-CHANNEL_ID = -100 
+CHANNEL_ID = -1003636871446 
 BOT_TOKEN = "8550339613:AAHO_kfhWKXDbatTNq9ZWQk18NU3PnCMncg"
 ADMIN_ID = 7710526060
 DB_PATH = os.path.abspath("data.db")
@@ -543,4 +543,5 @@ async def main():
 if __name__ == "__main__":
 
     asyncio.run(main())
+
 
