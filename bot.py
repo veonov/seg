@@ -299,7 +299,7 @@ async def confirm_purchase(callback: CallbackQuery, state: FSMContext):
     balance = await get_balance(user_id)
 
     if balance < total:
-        await callback.answer("❌ Недостаточно средств", show_alert=True)
+        await callback.answer("❌ Недостаточно средств!\nПополните баланс у @feeddrugbot", show_alert=True)
         return
 
     user = await get_user(user_id)
@@ -340,7 +340,7 @@ async def execute_purchase(callback: CallbackQuery, state: FSMContext):
 
     balance = await get_balance(user_id)
     if balance < total:
-        await callback.answer("❌ Недостаточно средств!\nПополните баланс у @feeddrugbot, show_alert=True)
+        await callback.answer("❌ Недостаточно средств!\nПополните баланс у @feeddrugbot", show_alert=True)
         return
 
     user = await get_user(user_id)
@@ -453,3 +453,4 @@ async def main():
 if __name__ == "__main__":
 
     asyncio.run(main())
+
