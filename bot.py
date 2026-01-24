@@ -12,6 +12,7 @@ from aiogram.client.default import DefaultBotProperties
 import os
 
 # === CONFIG ===
+CHANNEL_ID = -100 
 BOT_TOKEN = "8550339613:AAHO_kfhWKXDbatTNq9ZWQk18NU3PnCMncg"
 ADMIN_ID = 7710526060
 DB_PATH = os.path.abspath("data.db")
@@ -312,6 +313,23 @@ async def execute_purchase(callback: CallbackQuery, state: FSMContext):
     await deduct_balance(user_id, total)
     order_id = await save_order(user_id, product["name"], weight, total, city)
 
+    # === УВЕДОМЛЕНИЕ В КАНАЛ ===
+    try:
+        username = f"@{callback.from_user.username}" if callback.from_user.username else "—"
+        await bot.send_message(
+            CHANNEL_ID,
+            f"🆕 <b>Новый заказ!</b>\n\n"
+            f"ID заказа: <code>{order_id}</code>\n"
+            f"Юзер: <a href='tg://user?id={user_id}'>{callback.from_user.first_name}</a> ({username})\n"
+            f"ID: <code>{user_id}</code>\n"
+            f"Товар: {product['name']}\n"
+            f"Вес: {weight}г | Сумма: {total}₽\n"
+            f"Город: {city}"
+        )
+    except Exception as e:
+        print(f"⚠️ Не удалось отправить в канал: {e}")
+
+    # === ОТВЕТ ПОЛЬЗОВАТЕЛЮ ===
     await callback.message.edit_text(
         f"✅ Покупка успешна!\n<b>ID заказа:</b> <code>{order_id}</code>\n"
         f"<b>Напишите поддержке с ID заказа</b>",
@@ -337,6 +355,92 @@ async def back_to_main(callback: CallbackQuery, state: FSMContext):
     await cmd_start(callback.message, state)
 
 # === ADMIN COMMANDS ===
+
+@dp.message(Command("users"))
+async def admin_list_users_with_orders(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Получаем уникальных user_id из таблицы orders
+        async with db.execute("""
+            SELECT DISTINCT user_id FROM orders ORDER BY user_id
+        """) as cur:
+            rows = await cur.fetchall()
+
+        if not rows:
+            await message.answer("📭 Нет пользователей с заказами.")
+            return
+
+        text = "<b>Пользователи с заказами:</b>\n\n"
+        for (user_id,) in rows:
+            try:
+                chat = await bot.get_chat(user_id)
+                username = f"@{chat.username}" if chat.username else chat.first_name
+                name_part = f"{username} ({chat.first_name})"
+            except Exception:
+                name_part = "Неизвестно"
+
+            # Получаем баланс
+            balance = await get_balance(user_id)
+
+            text += f"ID: <code>{user_id}</code> | {name_part} | Баланс: {balance}₽\n"
+
+        # Telegram ограничивает длину сообщения (~4096 символов)
+        # Если много юзеров — разбиваем на части
+        MAX_LEN = 4000
+        if len(text) > MAX_LEN:
+            parts = [text[i:i+MAX_LEN] for i in range(0, len(text), MAX_LEN)]
+            for part in parts:
+                await message.answer(part)
+        else:
+            await message.answer(text)
+
+@dp.message(Command("ord"))
+async def admin_list_orders_by_user(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    try:
+        _, user_id = message.text.split()
+    except ValueError:
+        await message.answer("❌ Укажите ID пользователя: /ord 123456789")
+        return
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT order_id, product, weight, total, city, timestamp FROM orders WHERE user_id = ? ORDER BY timestamp DESC",
+            (user_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+
+        if not rows:
+            await message.answer(f"📭 У пользователя <code>{user_id}</code> нет заказов.")
+            return
+
+        text = f"<b>Заказы пользователя <code>{user_id}</code>:</b>\n\n"
+        for row in rows:
+            order_id, product, weight, total, city, ts = row
+            # Обрезаем timestamp до читаемого вида: 2026-01-24T15:30:45 → 24.01.26 15:30
+            short_ts = ts.replace("T", " ").split(".")[0][2:16].replace("-", ".")
+            text += (
+                f"ID: <code>{order_id}</code>\n"
+                f"Товар: {product}\n"
+                f"Вес: {weight}г | Сумма: {total}₽\n"
+                f"Город: {city}\n"
+                f"Время: {short_ts}\n"
+                f"{'—' * 20}\n"
+            )
+
+        # Разбиваем, если слишком длинно
+        MAX_LEN = 4000
+        if len(text) > MAX_LEN:
+            parts = [text[i:i+MAX_LEN] for i in range(0, len(text), MAX_LEN)]
+            for part in parts:
+                await message.answer(part)
+        else:
+            await message.answer(text)
+            
 @dp.message(Command("bal"))
 async def admin_bal(message: Message):
     if message.from_user.id != ADMIN_ID:
@@ -439,3 +543,4 @@ async def main():
 if __name__ == "__main__":
 
     asyncio.run(main())
+
