@@ -99,7 +99,12 @@ async def get_user(user_id: str):
 
 async def set_user_city(user_id: str, city: str):
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("UPDATE users SET city = ? WHERE user_id = ?", (city, user_id))
+        # UPSERT: создаём запись если нет, обновляем город если есть
+        await db.execute("""
+            INSERT INTO users (user_id, city, join_date)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET city = excluded.city
+        """, (user_id, city))
         await db.commit()
 
 async def is_team_member(user_id: str) -> bool:
@@ -1049,4 +1054,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
     print("бот запущен")
