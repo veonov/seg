@@ -7,15 +7,9 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.filters import Command
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 import os
 import hashlib
-from html import escape
-
-def safe_html(text: str) -> str:
-    """Экранирует все пользовательские данные для безопасной отправки в HTML"""
-    return escape(str(text), quote=False)
 
 # === CONFIG ===
 CHANNEL_ID = -1003636871446
@@ -25,7 +19,8 @@ ADMIN_ID = 5117013161
 DB_PATH = os.path.abspath("data.db")
 REFERRAL_PERCENT = 0.50
 
-bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+# Отключаем HTML-парсинг → используем обычный текст
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=None))
 dp = Dispatcher()
 
 # === DB INIT ===
@@ -273,7 +268,7 @@ async def cmd_work(message: Message, state: FSMContext):
     kb1 = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👤 Профиль", callback_data="menu_profile")],
         [InlineKeyboardButton(text="💼 Ворк", callback_data="menu_work")],
-        [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrugbot")]
+        [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrug")]
     ])
     
     await message.answer(text, reply_markup=kb1)
@@ -289,11 +284,11 @@ async def show_profile(callback: CallbackQuery):
     ref_link = f"https://t.me/drugrbot?start=ref_{get_ref_hash(user_id)}"
     
     text = (
-        f"<b>👤 Профиль</b>\n\n"
-        f"🆔 ID: <code>{safe_html(user_id)}</code>\n"
-        f"📅 В команде с: {safe_html(join_date or '—')}\n"
+        f"👤 Профиль\n\n"
+        f"🆔 ID: {user_id}\n"
+        f"📅 В команде с: {join_date or '—'}\n"
         f"👥 Привлечено: {stats['invited']} чел.\n"
-        f"🔗 Реф. ссылка: <a href='{ref_link}'>t.me/drugrbot?start=ref_{get_ref_hash(user_id)}</a>"
+        f"🔗 Реф. ссылка: {ref_link}"
     )
     
     await callback.message.edit_text(
@@ -309,13 +304,12 @@ async def show_work(callback: CallbackQuery):
     stats = await get_referral_stats(user_id)
     
     text = (
-        f"<b>💼 Ворк</b>\n\n"
+        f"💼 Ворк\n\n"
         f"👥 Приглашённых: {stats['invited']}\n"
         f"💰 Заработано: {stats['earned']:.2f}₽ (50% от заказов)\n"
         f"📊 Профит: {stats['profit']:.2f}₽\n"
-        f"💳 К выводу: {stats['profit']:.2f}₽\n\n"
-        f"<i>Чтобы вывести средства, напишите:</i>\n"
-        f"<code>/win сумма</code>"
+        f"💳 К выводу: {stats['profit']:.2f}₽\n\n"        f"Чтобы вывести средства, напишите:\n"
+        f"/win сумма"
     )
     
     await callback.message.edit_text(
@@ -333,10 +327,10 @@ async def show_settings(callback: CallbackQuery, state: FSMContext):
     city = user["city"] if user["city"] else "не выбран"
     
     text = (
-        f"<b>⚙️ Настройки</b>\n"
-        f"ID: <code>{safe_html(user_id)}</code>\n"
-        f"Юзернейм: @{safe_html(username)}\n"
-        f"Город: {safe_html(city)}"
+        f"⚙️ Настройки\n"
+        f"ID: {user_id}\n"
+        f"Юзернейм: @{username}\n"
+        f"Город: {city}"
     )
     
     await callback.message.edit_text(
@@ -361,7 +355,7 @@ async def process_city_input(message: Message, state: FSMContext):
     user_id = str(message.from_user.id)
     await set_user_city(user_id, city)
     await state.clear()
-    await message.answer(f"✅ Город сохранён: <b>{safe_html(city)}</b>")
+    await message.answer(f"✅ Город сохранён: {city}")
     await cmd_start(message, state)
 
 @dp.callback_query(lambda c: c.data == "menu_catalog")
@@ -409,7 +403,7 @@ async def choose_amount(callback: CallbackQuery, state: FSMContext):
     
     await state.update_data(product_id=product_id, price=product["price"])
     await callback.message.edit_text(
-        f"Товар: <b>{safe_html(product['name'])}</b> ({product['price']}₽/г)\n"
+        f"Товар: {product['name']} ({product['price']}₽/г)\n"
         "Введите желаемый вес в граммах (от 0.1 до 5):"
     )
     await state.set_state(BuyFlow.choosing_amount)
@@ -444,12 +438,12 @@ async def process_weight_input(message: Message, state: FSMContext):
     
     await state.update_data(weight=weight, total=total, product_name=product_name)
     await message.answer(
-        f"<b>Подтверждение:</b>\n"
-        f"Товар: {safe_html(product_name)}\n"
+        f"Подтверждение:\n"
+        f"Товар: {product_name}\n"
         f"Вес: {weight}г\n"
         f"Сумма: {total}₽\n"
-        f"Город доставки: {safe_html(city)}\n\n"
-        f"❗ После подтверждения напишите @feeddrugbot для оплаты",
+        f"Город доставки: {city}\n\n"
+        f"❗ После подтверждения напишите @feeddrug для оплаты",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"confirm_{data['product_id']}_{weight}_{total}")],
             [InlineKeyboardButton(text="❌ Отмена", callback_data="menu_catalog")]
@@ -486,22 +480,22 @@ async def confirm_order(callback: CallbackQuery, state: FSMContext):
     
     await bot.send_message(
         CHANNEL_ID,
-        f"🆕 <b>Новый заказ!</b>\n\n"
-        f"🆔 ID: <code>{safe_html(order_id)}</code>\n"
-        f"👤 Юзер: {safe_html(callback.from_user.first_name)} ({safe_html(username)})\n"
-        f"📦 Товар: {safe_html(product_name)}\n"
+        f"🆕 НОВЫЙ ЗАКАЗ!\n\n"
+        f"🆔 ID: {order_id}\n"
+        f"👤 Юзер: {callback.from_user.first_name} ({username})\n"
+        f"📦 Товар: {product_name}\n"
         f"⚖️ Вес: {weight}г | 💰 Сумма: {total}₽\n"
-        f"🏙 Город: {safe_html(city)}\n"
-        f"🔗 Реферер: {safe_html(referrer_id or '—')}\n"
-        f"⏳ Статус: <b>ожидает оплаты</b>",
+        f"🏙 Город: {city}\n"
+        f"🔗 Реферер: {referrer_id or '—'}\n"
+        f"⏳ Статус: ожидает оплаты",
         reply_markup=admin_kb
     )
     
     await callback.message.edit_text(
-        f"✅ Заказ создан!\n<b>ID заказа:</b> <code>{safe_html(order_id)}</code>\n\n"
-        f"💬 Напишите @feeddrugbot для оплаты и получения закладки",
+        f"✅ Заказ создан!\nID заказа: {order_id}\n\n"
+        f"💬 Напишите @feeddrug для оплаты и получения закладки",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrugbot")]
+            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrug")]
         ])
     )
     await state.clear()
@@ -509,7 +503,6 @@ async def confirm_order(callback: CallbackQuery, state: FSMContext):
 @dp.callback_query(lambda c: c.data.startswith("paid_"))
 async def mark_paid(callback: CallbackQuery):
     if callback.from_user.id != ADMIN_ID:
-        await callback.answer("❌ Только админ", show_alert=True)
         return
     
     order_id = callback.data[5:]
@@ -529,7 +522,7 @@ async def mark_paid(callback: CallbackQuery):
     try:
         await bot.send_message(
             buyer_id,
-            f"✅ Ваш заказ <code>{safe_html(order_id)}</code> оплачен!\n"
+            f"✅ Ваш заказ {order_id} оплачен!\n"
             f"Ожидайте сообщения от закладчика."
         )
     except:
@@ -556,21 +549,20 @@ async def mark_paid(callback: CallbackQuery):
         try:
             await bot.send_message(
                 referrer_id,
-                f"💰 <b>Начислено {commission:.2f}₽</b>\n"
-                f"За заказ <code>{safe_html(order_id)}</code> вашего реферала {safe_html(buyer_username)}"
+                f"💰 Начислено {commission:.2f}₽\n"
+                f"За заказ {order_id} вашего реферала {buyer_username}"
             )
         except:
             pass
         
-        # ИСПРАВЛЕНО: убраны все ссылки и добавлено экранирование
         try:
             await bot.send_message(
                 REF_CHANNEL_ID,
-                f"💸 <b>НОВОЕ НАЧИСЛЕНИЕ!</b>\n\n"
-                f"🆔 Заказ: <code>{safe_html(order_id)}</code>\n"
-                f"👤 Реферер: {safe_html(ref_username)} (<code>{safe_html(referrer_id)}</code>)\n"
-                f"🛒 Покупатель: {safe_html(buyer_username)} (<code>{safe_html(buyer_id)}</code>)\n"
-                f"📦 Товар: {safe_html(product)} ({weight}г)\n"
+                f"💸 НОВОЕ НАЧИСЛЕНИЕ!\n\n"
+                f"🆔 Заказ: {order_id}\n"
+                f"👤 Реферер: {ref_username} ({referrer_id})\n"
+                f"🛒 Покупатель: {buyer_username} ({buyer_id})\n"
+                f"📦 Товар: {product} ({weight}г)\n"
                 f"💰 Сумма заказа: {total:.2f}₽\n"
                 f"📊 Профит рефера: {commission:.2f}₽ (50%)\n"
                 f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}"
@@ -580,8 +572,8 @@ async def mark_paid(callback: CallbackQuery):
     
     await callback.message.edit_text(
         callback.message.text.replace(
-            "⏳ Статус: <b>ожидает оплаты</b>",
-            f"✅ Статус: <b>оплачен</b>\n💵 Рефереру начислено: {commission:.2f}₽"
+            "⏳ Статус: ожидает оплаты",
+            f"✅ Статус: оплачен\n💵 Рефереру начислено: {commission:.2f}₽"
         ),
         reply_markup=None
     )
@@ -590,7 +582,6 @@ async def mark_paid(callback: CallbackQuery):
 @dp.callback_query(lambda c: c.data.startswith("cancelled_"))
 async def mark_cancelled(callback: CallbackQuery):
     if callback.from_user.id != ADMIN_ID:
-        await callback.answer("❌ Только админ", show_alert=True)
         return
     
     order_id = callback.data[10:]
@@ -611,15 +602,15 @@ async def mark_cancelled(callback: CallbackQuery):
         try:
             await bot.send_message(
                 user_id,
-                f"❌ Ваш заказ <code>{safe_html(order_id)}</code> отменён (не оплачен)."
+                f"❌ Ваш заказ {order_id} отменён (не оплачен)."
             )
         except:
             pass
     
     await callback.message.edit_text(
         callback.message.text.replace(
-            "⏳ Статус: <b>ожидает оплаты</b>",
-            "❌ Статус: <b>не оплачен</b>\n🚫 Рефереру ничего не начислено"
+            "⏳ Статус: ожидает оплаты",
+            "❌ Статус: не оплачен\n🚫 Рефереру ничего не начислено"
         ),
         reply_markup=None
     )
@@ -628,9 +619,9 @@ async def mark_cancelled(callback: CallbackQuery):
 @dp.callback_query(lambda c: c.data == "menu_support")
 async def support(callback: CallbackQuery):
     await callback.message.edit_text(
-        "🛠 Напишите @feeddrugbot для связи с поддержкой",
+        "🛠 Напишите @feeddrug для связи с поддержкой",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrugbot")],
+            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrug")],
             [InlineKeyboardButton(text="⬅️ Назад", callback_data="back_to_main")]
         ])
     )
@@ -666,7 +657,6 @@ async def cmd_withdraw(message: Message):
     user_id = str(message.from_user.id)
     
     if not await is_team_member(user_id):
-        await message.answer("❌ Вы не состоите в команде. Сначала получите приглашение от админа.")
         return
     
     try:
@@ -677,7 +667,7 @@ async def cmd_withdraw(message: Message):
     except (ValueError, TypeError):
         await message.answer(
             "❌ Неверный формат.\n"
-            "Используйте: <code>/win 1500</code>\n"
+            "Используйте: /win 1500\n"
             "Минимальная сумма вывода: 500₽"
         )
         return
@@ -707,9 +697,9 @@ async def cmd_withdraw(message: Message):
     
     await bot.send_message(
         ADMIN_ID,
-        f"📥 <b>НОВАЯ ЗАЯВКА НА ВЫВОД</b>\n\n"
-        f"🆔 ID заявки: <code>{safe_html(withdrawal_id)}</code>\n"
-        f"👤 Воркер: {safe_html(username)} (<code>{safe_html(user_id)}</code>)\n"
+        f"📥 НОВАЯ ЗАЯВКА НА ВЫВОД\n\n"
+        f"🆔 ID заявки: {withdrawal_id}\n"
+        f"👤 Воркер: {username} ({user_id})\n"
         f"💰 Сумма: {amount:.2f}₽\n"
         f"📊 Профит до вывода: {stats['profit']:.2f}₽\n"
         f"👥 Привлечено: {stats['invited']} чел.\n"
@@ -719,7 +709,7 @@ async def cmd_withdraw(message: Message):
     
     await message.answer(
         f"✅ Заявка на вывод создана!\n\n"
-        f"🆔 ID заявки: <code>{safe_html(withdrawal_id)}</code>\n"
+        f"🆔 ID заявки: {withdrawal_id}\n"
         f"💰 Сумма: {amount:.2f}₽\n"
         f"⏳ Ожидайте подтверждения от админа."
     )
@@ -747,8 +737,8 @@ async def approve_withdrawal(callback: CallbackQuery):
     try:
         await bot.send_message(
             user_id,
-            f"✅ <b>ВЫВОД ПОДТВЕРЖДЁН!</b>\n\n"
-            f"🆔 Заявка: <code>{safe_html(withdrawal_id)}</code>\n"
+            f"✅ ВЫВОД ПОДТВЕРЖДЁН!\n\n"
+            f"🆔 Заявка: {withdrawal_id}\n"
             f"💰 Сумма: {amount:.2f}₽\n"
             f"💳 Средства будут переведены в ближайшее время.\n"
             f"Спасибо за работу! 💪"
@@ -757,7 +747,7 @@ async def approve_withdrawal(callback: CallbackQuery):
         pass
     
     await callback.message.edit_text(
-        callback.message.text + f"\n\n✅ <b>ПОДТВЕРЖДЕНО</b> админом {datetime.now().strftime('%H:%M')}\n"
+        callback.message.text + f"\n\n✅ ПОДТВЕРЖДЕНО админом {datetime.now().strftime('%H:%M')}\n"
         f"Сумма: {amount:.2f}₽ переведена"
     )
     await callback.answer("✅ Вывод подтверждён", show_alert=True)
@@ -784,15 +774,15 @@ async def reject_withdrawal(callback: CallbackQuery):
     try:
         await bot.send_message(
             user_id,
-            f"❌ <b>ВЫВОД ОТКЛОНЁН</b>\n\n"
-            f"🆔 Заявка: <code>{safe_html(withdrawal_id)}</code>\n"
+            f"❌ ВЫВОД ОТКЛОНЁН\n\n"
+            f"🆔 Заявка: {withdrawal_id}\n"
             f"💬 Свяжитесь с админом для уточнения причины."
         )
     except:
         pass
     
     await callback.message.edit_text(
-        callback.message.text + f"\n\n❌ <b>ОТКЛОНЁНО</b> админом {datetime.now().strftime('%H:%M')}"
+        callback.message.text + f"\n\n❌ ОТКЛОНЁНО админом {datetime.now().strftime('%H:%M')}"
     )
     await callback.answer("❌ Вывод отклонён", show_alert=True)
 
@@ -846,7 +836,7 @@ async def cmd_teamlist(message: Message):
         await message.answer("📭 Команда пуста.")
         return
     
-    text = "<b>👥 Состав команды:</b>\n\n"
+    text = "👥 Состав команды:\n\n"
     for user_id, join_date, earned, withdrawn, referrer_id in rows:
         try:
             chat = await bot.get_chat(user_id)
@@ -858,10 +848,10 @@ async def cmd_teamlist(message: Message):
         profit = earned - withdrawn
         join_short = join_date.split("T")[0] if join_date else "—"
         text += (
-            f"🆔 <code>{safe_html(user_id)}</code>\n"
-            f"👤 {safe_html(name_part)}\n"
+            f"🆔 {user_id}\n"
+            f"👤 {name_part}\n"
             f"💰 Заработано: {earned:.2f}₽ | Выведено: {withdrawn:.2f}₽ | Профит: {profit:.2f}₽\n"
-            f"📅 В команде с: {safe_html(join_short)}\n"
+            f"📅 В команде с: {join_short}\n"
             f"{'—' * 20}\n"
         )
     
@@ -873,17 +863,17 @@ async def cmd_admin_help(message: Message):
         return
     
     text = (
-        "<b>🛠 Команды админа:</b>\n\n"
-        "• <code>/team user_id</code> — добавить юзера в команду\n"
-        "• <code>/delteam user_id</code> — удалить юзера из команды ⚠️\n"
-        "• <code>/teamlist</code> — список команды с доходами 💰\n"
-        "• <code>/users</code> — список юзеров с заказами\n"
-        "• <code>/ord user_id</code> — заказы юзера\n"
-        "• <code>/addprod Название Цена</code> — добавить товар\n"
-        "• <code>/delprod ID</code> — удалить товар\n"
-        "• <code>/prod</code> — список товаров\n"
-        "• <code>/win</code> — обработка выводов (авто через кнопки)\n\n"
-        "<b>В канале заказов:</b>\n"
+        "🛠 Команды админа:\n\n"
+        "• /team user_id — добавить юзера в команду\n"
+        "• /delteam user_id — удалить юзера из команды ⚠️\n"
+        "• /teamlist — список команды с доходами 💰\n"
+        "• /users — список юзеров с заказами\n"
+        "• /ord user_id — заказы юзера\n"
+        "• /addprod Название Цена — добавить товар\n"
+        "• /delprod ID — удалить товар\n"
+        "• /prod — список товаров\n"
+        "• /win — обработка выводов (авто через кнопки)\n\n"
+        "В канале заказов:\n"
         "✅ ОПЛАТИЛ — начислить рефералку\n"
         "❌ НЕ ОПЛАТИЛ — не начислять"
     )
@@ -900,10 +890,10 @@ async def cmd_team(message: Message):
             await bot.send_message(
                 user_id,
                 "🎉 Вы добавлены в команду!\n"
-                f"Ваша реф.ссылка: <code>ref_{get_ref_hash(user_id)}</code>\n"
+                f"Ваша реф.ссылка: ref_{get_ref_hash(user_id)}\n"
                 "Давайте её друзьям и получайте 50% от их заказов!\n\n"
-                "<i>Для вывода заработка используйте команду:</i>\n"
-                "<code>/win сумма</code>"
+                "Для вывода заработка используйте команду:\n"
+                "/win сумма"
             )
         except:
             pass
@@ -929,7 +919,7 @@ async def admin_list_users_with_orders(message: Message):
             await message.answer("📭 Нет пользователей с заказами.")
             return
 
-        text = "<b>Пользователи с заказами:</b>\n\n"
+        text = "Пользователи с заказами:\n\n"
         for user_id, referrer_id in rows:
             try:
                 chat = await bot.get_chat(user_id)
@@ -938,7 +928,7 @@ async def admin_list_users_with_orders(message: Message):
             except Exception:
                 name_part = "Неизвестно"
 
-            text += f"ID: <code>{safe_html(user_id)}</code> | {safe_html(name_part)} | Реферер: {safe_html(referrer_id or '—')}\n"
+            text += f"ID: {user_id} | {name_part} | Реферер: {referrer_id or '—'}\n"
 
         await message.answer(text[:4096])
 
@@ -961,18 +951,18 @@ async def admin_list_orders_by_user(message: Message):
             rows = await cur.fetchall()
 
         if not rows:
-            await message.answer(f"📭 У пользователя <code>{user_id}</code> нет заказов.")
+            await message.answer(f"📭 У пользователя {user_id} нет заказов.")
             return
 
-        text = f"<b>Заказы пользователя <code>{safe_html(user_id)}</code>:</b>\n\n"
+        text = f"Заказы пользователя {user_id}:\n\n"
         for row in rows:
             order_id, product, weight, total, city, status, ts = row
             short_ts = ts.replace("T", " ").split(".")[0][2:16].replace("-", ".")
             status_emoji = "✅" if status == "paid" else ("❌" if status == "cancelled" else "⏳")
             text += (
-                f"{status_emoji} ID: <code>{safe_html(order_id)}</code>\n"
-                f"Товар: {safe_html(product)} | {weight}г | {total}₽\n"
-                f"Город: {safe_html(city)} | {short_ts} | {status}\n"
+                f"{status_emoji} ID: {order_id}\n"
+                f"Товар: {product} | {weight}г | {total}₽\n"
+                f"Город: {city} | {short_ts} | {status}\n"
                 f"{'—' * 20}\n"
             )
 
@@ -987,7 +977,7 @@ async def admin_addprod(message: Message):
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("INSERT INTO products (name, price_per_gram) VALUES (?, ?)", (name, float(price)))
             await db.commit()
-        await message.answer(f"✅ Товар '{safe_html(name)}' добавлен ({price}₽/г)")
+        await message.answer(f"✅ Товар '{name}' добавлен ({price}₽/г)")
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}. Формат: /addprod Название Цена")
 
@@ -1018,9 +1008,9 @@ async def admin_list_products(message: Message):
         await message.answer("📦 Каталог пуст.")
         return
 
-    text = "<b>Список товаров:</b>\n\n"
+    text = "Список товаров:\n\n"
     for pid, name, price in rows:
-        text += f"ID: <code>{pid}</code> | {safe_html(name)} ({price}₽/г)\n"
+        text += f"ID: {pid} | {name} ({price}₽/г)\n"
 
     await message.answer(text)
 
@@ -1036,4 +1026,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
