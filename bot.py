@@ -490,15 +490,16 @@ async def confirm_order(callback: CallbackQuery, state: FSMContext):
             InlineKeyboardButton(text="❌ НЕ ОПЛАТИЛ", callback_data=f"cancelled_{order_id}")
         ]
     ])
+    # ИСПРАВЛЕНО: убрана битая ссылка tg://, добавлено экранирование
     await bot.send_message(
         CHANNEL_ID,
         f"🆕 <b>Новый заказ!</b>\n\n"
         f"🆔 ID: <code>{order_id}</code>\n"
-       f"👤 Юзер: tg://user?id={user_id} {callback.from_user.first_name} ({username})\n"
-        f"📦 Товар: {product_name}\n"
+        f"👤 Юзер: {safe_html(callback.from_user.first_name)} ({safe_html(username)})\n"
+        f"📦 Товар: {safe_html(product_name)}\n"
         f"⚖️ Вес: {weight}г | 💰 Сумма: {total}₽\n"
-        f"🏙 Город: {city}\n"
-        f"🔗 Реферер: {referrer_id or '—'}\n"
+        f"🏙 Город: {safe_html(city)}\n"
+        f"🔗 Реферер: {safe_html(referrer_id or '—')}\n"
         f"⏳ Статус: <b>ожидает оплаты</b>",
         reply_markup=admin_kb
     )
@@ -568,20 +569,20 @@ async def mark_paid(callback: CallbackQuery):
         except:
             pass
         
-        try:
-            await bot.send_message(
-                REF_CHANNEL_ID,
-                f"💸 <b>НОВОЕ НАЧИСЛЕНИЕ!</b>\n\n"
-                f"🆔 Заказ: <code>{order_id}</code>\n"
-                f"👤 Реферер: tg://user?id={referrer_id} {ref_username} (<code>{referrer_id}</code>)\n"
-                f"🛒 Покупатель: {buyer_username} (<code>{buyer_id}</code>)\n"
-                f"📦 Товар: {product} ({weight}г)\n"
-                f"💰 Сумма заказа: {total:.2f}₽\n"
-                f"📊 Профит рефера: {commission:.2f}₽ (45%)\n"
-                f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}"
-            )
-        except Exception as e:
-            print(f"⚠️ Не удалось отправить в канал рефералок: {e}")
+       try:
+    await bot.send_message(
+        REF_CHANNEL_ID,
+        f"💸 <b>НОВОЕ НАЧИСЛЕНИЕ!</b>\n\n"
+        f"🆔 Заказ: <code>{order_id}</code>\n"
+        f"👤 Реферер: {safe_html(ref_username)} (<code>{safe_html(referrer_id)}</code>)\n"
+        f"🛒 Покупатель: {safe_html(buyer_username)} (<code>{safe_html(buyer_id)}</code>)\n"
+        f"📦 Товар: {safe_html(product)} ({weight}г)\n"
+        f"💰 Сумма заказа: {total:.2f}₽\n"
+        f"📊 Профит рефера: {commission:.2f}₽ (45%)\n"
+        f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+    )
+except Exception as e:
+    print(f"⚠️ Не удалось отправить в канал рефералок: {e}")
     
     await callback.message.edit_text(
         callback.message.text.replace(
@@ -720,16 +721,16 @@ async def cmd_withdraw(message: Message):
     
     # Уведомление админу
     await bot.send_message(
-        ADMIN_ID,
-        f"📥 <b>НОВАЯ ЗАЯВКА НА ВЫВОД</b>\n\n"
-        f"🆔 ID заявки: <code>{withdrawal_id}</code>\n"
-        f"👤 Воркер: tg://user?id={user_id} {username} (<code>{user_id}</code>)\n"
-        f"💰 Сумма: {amount:.2f}₽\n"
-        f"📊 Профит до вывода: {stats['profit']:.2f}₽\n"
-        f"👥 Привлечено: {stats['invited']} чел.\n"
-        f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}",
-        reply_markup=admin_kb
-    )
+    ADMIN_ID,
+    f"📥 <b>НОВАЯ ЗАЯВКА НА ВЫВОД</b>\n\n"
+    f"🆔 ID заявки: <code>{withdrawal_id}</code>\n"
+    f"👤 Воркер: {safe_html(username)} (<code>{safe_html(user_id)}</code>)\n"
+    f"💰 Сумма: {amount:.2f}₽\n"
+    f"📊 Профит до вывода: {stats['profit']:.2f}₽\n"
+    f"👥 Привлечено: {stats['invited']} чел.\n"
+    f"⏰ {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+    reply_markup=admin_kb
+)
     
     # Уведомление пользователю
     await message.answer(
@@ -925,7 +926,7 @@ async def cmd_team(message: Message):
                 user_id,
                 "🎉 Вы добавлены в команду!\n"
                 f"Ваша реф.ссылка: <code>ref_{get_ref_hash(user_id)}</code>\n"
-                "Давайте её друзьям и получайте 45% от их заказов!\n\n"
+                "Давайте её друзьям и получайте 50% от их заказов!\n\n"
                 "<i>Для вывода заработка используйте команду:</i>\n"
                 "<code>/win сумма</code>"
             )
