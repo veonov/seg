@@ -569,7 +569,7 @@ async def mark_paid(callback: CallbackQuery):
         except:
             pass
         
-       try:
+try:
     await bot.send_message(
         REF_CHANNEL_ID,
         f"💸 <b>НОВОЕ НАЧИСЛЕНИЕ!</b>\n\n"
@@ -1063,3 +1063,4 @@ if __name__ == "__main__":
     asyncio.run(main())
 
     print("бот запущен")
+
