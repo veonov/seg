@@ -562,6 +562,7 @@ async def mark_paid(callback: CallbackQuery):
         except:
             pass
         
+        # ИСПРАВЛЕНО: убраны все ссылки и добавлено экранирование
         try:
             await bot.send_message(
                 REF_CHANNEL_ID,
@@ -1035,3 +1036,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
