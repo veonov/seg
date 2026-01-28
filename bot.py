@@ -301,7 +301,7 @@ async def show_profile(callback: CallbackQuery):
         f"🆔 ID: <code>{user_id}</code>\n"
         f"📅 В команде с: {join_date or '—'}\n"
         f"👥 Привлечено: {stats['invited']} чел.\n"
-        f"🔗 Реф. ссылка: {safe_html(f't.me/drugrbot/start?=ref_{get_ref_hash(user_id)}')}"
+        f"🔗 Реф. ссылка: t.me/drugrbot/start?=ref_{get_ref_hash(user_id)}"
     )
     
     await callback.message.edit_text(
@@ -494,7 +494,7 @@ async def confirm_order(callback: CallbackQuery, state: FSMContext):
         CHANNEL_ID,
         f"🆕 <b>Новый заказ!</b>\n\n"
         f"🆔 ID: <code>{order_id}</code>\n"
-        f"👤 Юзер: <a href='tg://user?id={user_id}'>{safe_html(callback.from_user.first_name)}</a> ({safe_html(username)})\n"
+       f"👤 Юзер: tg://user?id={user_id} {callback.from_user.first_name} ({username})\n"
         f"📦 Товар: {product_name}\n"
         f"⚖️ Вес: {weight}г | 💰 Сумма: {total}₽\n"
         f"🏙 Город: {city}\n"
@@ -505,9 +505,9 @@ async def confirm_order(callback: CallbackQuery, state: FSMContext):
     
     await callback.message.edit_text(
         f"✅ Заказ создан!\n<b>ID заказа:</b> <code>{order_id}</code>\n\n"
-        f"💬 Напишите @feeddrugbot для оплаты и получения закладки",
+        f"💬 Напишите @feeddrug для оплаты и получения закладки",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrugbot")]
+            [InlineKeyboardButton(text="💬 Написать в поддержку", url="https://t.me/feeddrug")]
         ])
     )
     await state.clear()
@@ -573,7 +573,7 @@ async def mark_paid(callback: CallbackQuery):
                 REF_CHANNEL_ID,
                 f"💸 <b>НОВОЕ НАЧИСЛЕНИЕ!</b>\n\n"
                 f"🆔 Заказ: <code>{order_id}</code>\n"
-                f"👤 Воркер: <a href='tg://user?id={referrer_id}'>{safe_html(ref_username)}</a> (<code>{safe_html(referrer_id)}</code>)\n"
+                f"👤 Реферер: tg://user?id={referrer_id} {ref_username} (<code>{referrer_id}</code>)\n"
                 f"🛒 Покупатель: {buyer_username} (<code>{buyer_id}</code>)\n"
                 f"📦 Товар: {product} ({weight}г)\n"
                 f"💰 Сумма заказа: {total:.2f}₽\n"
@@ -723,7 +723,7 @@ async def cmd_withdraw(message: Message):
         ADMIN_ID,
         f"📥 <b>НОВАЯ ЗАЯВКА НА ВЫВОД</b>\n\n"
         f"🆔 ID заявки: <code>{withdrawal_id}</code>\n"
-        f"👤 Воркер: <a href='tg://user?id={user_id}'>{username}</a> (<code>{user_id}</code>)\n"
+        f"👤 Воркер: tg://user?id={user_id} {username} (<code>{user_id}</code>)\n"
         f"💰 Сумма: {amount:.2f}₽\n"
         f"📊 Профит до вывода: {stats['profit']:.2f}₽\n"
         f"👥 Привлечено: {stats['invited']} чел.\n"
